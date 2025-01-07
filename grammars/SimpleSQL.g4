@@ -25,14 +25,11 @@ column_list : '*' | column_expr (',' column_expr)*;
 
 condition: column_name comparison_operator value | '(' condition ')' (logical_operator condition)*;
 
-where_clause
-    : WHERE condition;
+where_clause: WHERE condition;
 
-group_by_clause
-    : GROUP BY column_name (',' column_name)*;
+group_by_clause: GROUP BY column_name (',' column_name)*;
 
-select_statement
-    : SELECT column_list FROM table (where_clause)? (group_by_clause)?;
+select_statement: SELECT column_list FROM table (where_clause)? (group_by_clause)?;
 
 sql: select_statement;
 
