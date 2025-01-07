@@ -23,10 +23,7 @@ column_expr: column_name | aggregation_function '(' column_name ')';
 
 column_list : '*' | column_expr (',' column_expr)*;
 
-condition
-    : column_name comparison_operator value
-    | '(' condition ')' (logical_operator condition)*
-    ;
+condition: column_name comparison_operator value | '(' condition ')' (logical_operator condition)*;
 
 where_clause
     : WHERE condition;
