@@ -21,3 +21,7 @@ C:/Users/4artu/zulu21.30.15/bin/java -jar lib/antlr-4.13.2-complete.jar -Dlangua
 ```sh
 C:/Users/4artu/zulu21.30.15/bin/java -jar lib/antlr-4.13.2-complete.jar -Dlanguage=JavaScript -visitor -listener -o gen -Xexact-output-dir grammars/PreprocessorParser.g4
 ````
+
+```sh
+C:/Users/4artu/zulu21.30.15/bin/java -jar lib/antlr-4.13.2-complete.jar -Dlanguage=JavaScript -visitor -listener -o gen -Xexact-output-dir grammars/Expr.g4
+````
