@@ -1,5 +1,4 @@
 import antlr4 from 'antlr4';
-import CalcVisitor from './gen/ExprVisitor.js';
 import ExprLexer from "./gen/ExprLexer.js";
 import ExprParser from "./gen/ExprParser.js";
 import ExprVisitor from "./gen/ExprVisitor.js";
@@ -123,7 +122,6 @@ class ExprEvaluator extends ExprVisitor {
         const column = idToken.column + 1;
 
         const id = ctx.ID().getText();
-        // String id = ctx.getChild(0).getText();
         if (!this.vars.find(f => f === id))
             this.semanticErrors.push("Error1: variable " + id + " not declared (" + line + ", " + column + ")");
 
