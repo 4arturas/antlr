@@ -2,6 +2,7 @@ import antlr4 from 'antlr4';
 import CalcVisitor from './gen/ExprVisitor.js';
 import ExprLexer from "./gen/ExprLexer.js";
 import ExprParser from "./gen/ExprParser.js";
+import ExprVisitor from "./gen/ExprVisitor.js";
 
 const EXPR_PROGRAM = 0;
 const EXPR_DECLARATION = 1;
@@ -57,7 +58,7 @@ function expression_ToString( e )
 }
 
 
-class ExprEvaluator extends CalcVisitor {
+class ExprEvaluator extends ExprVisitor {
 
     constructor() {
         super();
@@ -68,8 +69,6 @@ class ExprEvaluator extends CalcVisitor {
 
     // Visit a parse tree produced by ExprParser#Program.
     visitProgram(ctx) {
-        // Program program = new Program();
-        // AntlrToExpression exprVisitor = new AntlrToExpression(semanticErrors);
         for ( let i = 0; i < ctx.getChildCount(); i++ )
         {
             if ( i === ctx.getChildCount()-1 )
@@ -85,13 +84,11 @@ class ExprEvaluator extends CalcVisitor {
 
     // Visit a parse tree produced by ExprParser#Declaration.
     visitDeclaration(ctx) {
-        // ID() is a method generated to correspond to the token ID in the source grammar.
         const idToken = ctx.ID().getSymbol(); // equivalent to: ctx.getChild(0).getSymbol()
         const line = idToken.line;
         const column = idToken.column + 1;
 
         const id = ctx.getChild(0).getText();
-        // Maintaining the vars list for semantic error reporting
         if (this.vars.includes(id))
             this.semanticErrors.push("Error2: variable " + id + " already declared (" + line + ", " + column + ")");
         else
