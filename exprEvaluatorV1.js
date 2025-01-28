@@ -57,7 +57,7 @@ function expression_ToString( e )
 }
 
 
-class ExprEvaluator extends ExprVisitor {
+class ExprEvaluatorV1 extends ExprVisitor {
 
     constructor() {
         super();
@@ -197,7 +197,7 @@ function evaluate(input) {
     const parser = new ExprParser(tokens);
     const tree = parser.prog();
 
-    const evaluator = new ExprEvaluator();
+    const evaluator = new ExprEvaluatorV1();
     const program = evaluator.visit(tree);
     return program;
 }
