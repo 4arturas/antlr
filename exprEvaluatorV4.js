@@ -20,33 +20,30 @@ class ExprEvaluatorV4 extends ExprVisitor
 
 // Visit a parse tree produced by ExprParser#Program.
     visitProgram(ctx) {
-        const ret = this.visitChildren(ctx);
-        return ret;
+        return this.visitChildren( ctx );
     }
 
 
     // Visit a parse tree produced by ExprParser#Declaration.
     visitDeclaration(ctx) {
-        // const variableName = ctx.getChild( 0 ).getText();
-        const ID = ctx.ID().getText();
-        const INT_TYPE = ctx.INT_TYPE().getText();
-        const NUM = ctx.NUM().getText();
-        mapValues[ID] = NUM;
-        return create_Node( DECLARATION, NUM, [ID, INT_TYPE, NUM] );
+        const id = ctx.ID().getText();
+        const int_type = ctx.INT_TYPE().getText();
+        const num = ctx.NUM().getText();
+        return create_Node( DECLARATION, null, [id, int_type,num]);
     }
 
 
     // Visit a parse tree produced by ExprParser#Multiplication.
     visitMultiplication(ctx) {
-        const left = this.visit( ctx.getChild( 0 ) );
+        const left = this.visit( ctx.getChild(0) );
         const right = this.visit( ctx.getChild( 2 ) );
-        return create_Node( MULTIPLICATION, "*", [left, right] );
+        return create_Node( MULTIPLICATION, "*", [left, right]);
     }
 
 
     // Visit a parse tree produced by ExprParser#Addition.
     visitAddition(ctx) {
-        const left = this.visit( ctx.getChild(0) );
+        const left = this.visit( ctx.getChild( 0 ) );
         const right = this.visit( ctx.getChild( 2 ) );
         return create_Node( ADDITION, "+", [left, right]);
     }
@@ -60,11 +57,23 @@ class ExprEvaluatorV4 extends ExprVisitor
 
 
     // Visit a parse tree produced by ExprParser#Number.
-    visitNumber(ctx) {
+    visitNumber(ctx)
+    {
         const numText = ctx.NUM().getText();
         return create_Node( NUMBER, numText );
     }
 }
+
+const input = `
+i: INT = 5
+j: INT = 7
+i
+j
+i + j
+i * j
+i + j * 3
+i * j + 3
+`;
 
 function evaluate( input )
 {
@@ -78,71 +87,53 @@ function evaluate( input )
     return program;
 }
 
-
-const input = `
-i: INT = 5
-j: INT = 7
-i
-j
-i + j
-i * j
-i + j * 3
-i * j + 3
-`;
-
 const program = evaluate( input );
 program.pop(); // remove last element
 // console.log( program );
 
-function expressionToString( expression )
+function expressionToString( e )
 {
-    switch ( expression.id )
+    switch ( e.id )
     {
-        case NUMBER:
-            return expression.value;
-        case ADDITION:
-            return `${expressionToString(expression.children[0])} + ${expressionToString(expression.children[1])}`;
-        case MULTIPLICATION:
-            return `${expressionToString(expression.children[0])} * ${expressionToString(expression.children[1])}`;
-        case VARIABLE:
-            return expression.value;
         case DECLARATION:
-            return `${expression.children[1]} ${expression.children[0]} = ${expression.children[2]}`;
-        default:
-            return null;
+            mapValues[e.children[0]] = e.children[2];
+            return `${e.children[1]} ${e.children[0]} = ${e.children[2]}`
+        case VARIABLE:
+            return `${e.value}`;
+        case ADDITION:
+            return `${expressionToString( e.children[0])} + ${expressionToString( e.children[1])}`;
+        case MULTIPLICATION:
+            return `${expressionToString( e.children[0])} * ${expressionToString( e.children[1])}`;
+        case NUMBER:
+            return e.value;
     }
 }
 
-function expressionEvaluate( expression )
+function expressionEval( e )
 {
-    switch ( expression.id )
+    switch ( e.id )
     {
-        case NUMBER:
-            return parseInt( expression.value );
-        case ADDITION:
-            return expressionEvaluate(expression.children[0] ) + expressionEvaluate(expression.children[1] );
-        case MULTIPLICATION:
-            return expressionEvaluate(expression.children[0] ) * expressionEvaluate(expression.children[1] );
         case VARIABLE:
-            return parseInt( mapValues[expression.value] );
-        case DECLARATION:
-            return "";
+            return parseInt( mapValues[e.value] );
+        case ADDITION:
+            return expressionEval( e.children[0] ) + expressionEval( e.children[1] );
+        case MULTIPLICATION:
+            return expressionEval( e.children[0] ) * expressionEval( e.children[1] );
+        case NUMBER:
+            return parseInt( e.value );
     }
 }
 
 for ( let i = 0; i < program.length; i++ )
 {
     const expression = program[i];
-    const exprString = expressionToString( expression );
-    let output;
-    if (expression.id === DECLARATION )
+    const exprStr = expressionToString( expression );
+    if ( expression.id === DECLARATION )
     {
-        output = exprString;
+        console.log( exprStr );
+        continue;
     }
-    else
-    {
-        const exprResult = expressionEvaluate( expression );
-        output = `${exprString} = ${exprResult}`;
-    }
-    console.log( output );
+    const exprRes = expressionEval( expression );
+    console.log( `${exprStr} = ${exprRes}` );
+    // console.log( expression );
 }
