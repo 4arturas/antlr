@@ -6,8 +6,8 @@ grammar Expr;
 
  // Start Variable
  prog:  (decl | expr)+ EOF          # Program
-        ;
-decl: ID ':' INT_TYPE '=' NUM       # Declaration
+     ;
+decl: INT_TYPE ID '=' NUM           # Declaration
     ;
 
 expr: expr '*' expr                 # Multiplication

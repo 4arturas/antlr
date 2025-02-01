@@ -27,52 +27,56 @@ class ExprEvaluatorV4 extends ExprVisitor
 
     // Visit a parse tree produced by ExprParser#Declaration.
     visitDeclaration(ctx) {
-        const id = ctx.ID().getText();
-        if ( vars.includes( id ) )
-            semanticErrors.push("Error variable exists " + id );
+        const INT_TYPE = ctx.INT_TYPE().getText();
+        const ID = ctx.ID().getText();
+        const NUM = ctx.NUM().getText();
+        if ( vars.includes( ID ) )
+            semanticErrors.push( "ERROR variable already exists " + ID );
         else
-            vars.push( id );
-        const int_type = ctx.INT_TYPE().getText();
-        const num = ctx.NUM().getText();
-        return create_Node( DECLARATION, null, [int_type, id, num]);
+            vars.push( ID );
+        mapValues[ID] = NUM;
+        return create_Node( DECLARATION, null, [ID, INT_TYPE, NUM]);
     }
 
 
     // Visit a parse tree produced by ExprParser#Multiplication.
-    visitMultiplication(ctx) {
+    visitMultiplication(ctx)
+    {
         const left = this.visit( ctx.getChild(0) );
-        const right = this.visit( ctx.getChild( 2 ) );
+        const right = this.visit( ctx.getChild(2) );
         return create_Node( MULTIPLICATION, "*", [left, right] );
     }
 
 
     // Visit a parse tree produced by ExprParser#Addition.
-    visitAddition(ctx) {
+    visitAddition(ctx)
+    {
         const left = this.visit( ctx.getChild(0) );
-        const right = this.visit( ctx.getChild( 2 ) );
+        const right = this.visit( ctx.getChild(2) );
         return create_Node( ADDITION, "+", [left, right] );
     }
 
 
     // Visit a parse tree produced by ExprParser#Variable.
-    visitVariable(ctx) {
-        const id = ctx.ID().getText();
-        if ( !vars.includes(id) )
-            semanticErrors.push( "Error not declared " + id );
-        return create_Node( VARIABLE, id );
+    visitVariable(ctx)
+    {
+        const ID = ctx.ID().getText();
+        if ( !vars.includes( ID ) )
+            semanticErrors.push( "ERROR variable does not exist " + ID );
+        return create_Node( VARIABLE, ID );
     }
 
 
     // Visit a parse tree produced by ExprParser#Number.
     visitNumber(ctx) {
-        const numText = ctx.NUM().getText();
-        return create_Node( NUMBER, numText );
+        const numTxt = ctx.NUM().getText();
+        return create_Node( NUMBER, numTxt );
     }
 }
 
 const input = `
-i: INT = 5
-j: INT = 7
+INT i = 5
+INT j = 7
 i
 j
 i + j
@@ -83,8 +87,8 @@ i * j + 3
 
 function evaluate( input )
 {
-    const chars = new antlr4.InputStream( input );
-    const lexer = new ExprLexer( chars );
+    const char = new antlr4.InputStream( input );
+    const lexer = new ExprLexer( char );
     const tokens = new antlr4.CommonTokenStream( lexer );
     const parser = new ExprParser( tokens );
     const tree = parser.prog();
@@ -97,49 +101,74 @@ const program = evaluate( input );
 program.pop(); // remove last element
 // console.log( program );
 
-function expressionToString( e )
+function expression_ToString( e )
 {
     switch ( e.id )
     {
-        case NUMBER:
-            return e.value;
+        case DECLARATION:
+            return `${e.children[1]} ${e.children[0]}`;
         case VARIABLE:
             return e.value;
         case ADDITION:
-            return `${expressionToString( e.children[0] ) } + ${expressionToString( e.children[1] ) }`;
+            return `${expression_ToString( e.children[0] ) } + ${expression_ToString( e.children[1] ) }`;
         case MULTIPLICATION:
-            return `${expressionToString( e.children[0] ) } * ${expressionToString( e.children[1] ) }`;
-        case DECLARATION:
-            mapValues[e.children[1]] = e.children[2];
-            return `${e.children[0]} ${e.children[1]}`;
+            return `${expression_ToString( e.children[0] ) } * ${expression_ToString( e.children[1] ) }`;
+        case NUMBER:
+            return e.value;
     }
 }
-
-function expressionEvaluate( e )
+function expression_Evaluate( e )
 {
     switch ( e.id )
     {
-        case NUMBER:
-            return parseInt( e.value );
-        case VARIABLE:
-            return parseInt(mapValues[e.value]);
-        case ADDITION:
-            return expressionEvaluate( e.children[0] ) + expressionEvaluate( e.children[1] );
-        case MULTIPLICATION:
-            return expressionEvaluate( e.children[0] ) * expressionEvaluate( e.children[1] );
         case DECLARATION:
             return e.children[2];
+        case VARIABLE:
+            return parseInt( mapValues[e.value] );
+        case ADDITION:
+            return expression_Evaluate( e.children[0] ) + expression_Evaluate( e.children[1] );
+        case MULTIPLICATION:
+            return expression_Evaluate( e.children[0] ) * expression_Evaluate( e.children[1] );
+        case NUMBER:
+            return parseInt( e.value );
     }
 }
-
-if ( semanticErrors.length === 0 )
+function expression_ToNode( e )
 {
-    for (let i = 0; i < program.length; i++) {
-        const expression = program[i];
-        const exprStr = expressionToString(expression);
-        const exprRes = expressionEvaluate(expression);
-        console.log(exprStr + " = " + exprRes);
+    switch ( e.id )
+    {
+        case NUMBER:
+            return { id: `${NUMBER}-${e.value}`, label: e.value };
+        case VARIABLE:
+            return { id: `${VARIABLE}-${e.value}`, label: e.value };
+        case ADDITION:
+            const addArr = [];
+            addArr.push( { id: `${ADDITION}-${e.value}`, label: e.value } );
+            addArr.push( expression_ToNode( e.children[0]) );
+            addArr.push( expression_ToNode( e.children[1]) );
+            return addArr;
+        case MULTIPLICATION:
+            const mulArr = [];
+            mulArr.push( { id: `${ADDITION}-${e.value}`, label: e.value } );
+            mulArr.push( expression_ToNode( e.children[0]) );
+            mulArr.push( expression_ToNode( e.children[1]) );
+            return mulArr;
+        case DECLARATION:
+            const declArr = [];
+            return [
+                { id: `${DECLARATION}1-${e.children[0]}`, label: `${e.children[0]}` },
+                { id: `${DECLARATION}2-${e.children[1]}`, label: `${e.children[1]}` },
+                { id: `${DECLARATION}3-${e.children[2]}`, label: `${e.children[2]}` },
+            ];
     }
 }
-else
-    semanticErrors.forEach( e => console.log( e ) );
+for ( let i = 0; i < program.length; i++ )
+{
+    const expression = program[i];
+    const exprStr = expression_ToString( expression );
+    const exprEval = expression_Evaluate( expression );
+    console.log( `${exprStr} = ${exprEval}` );
+
+    const exprNode = expression_ToNode( expression );
+    // console.log( exprNode );
+}
