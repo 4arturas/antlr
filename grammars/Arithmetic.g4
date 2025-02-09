@@ -1,18 +1,12 @@
 grammar Arithmetic;
 
-root : expression EOF ;
+// Parser Rules
+expr: expr op=('*'|'/') expr    # MulDivExpr
+    | expr op=('+'|'-') expr    # AddSubExpr
+    | '(' expr ')'              # ParenExpr
+    | NUMBER                    # NumberExpr
+    ;
 
-expression
-    : expression (MULT | DIV) expression
-    | expression (PLUS | MINUS) expression
-    | (PLUS | MINUS)* number ;
-
-number : NUMBER ;
-
-NUMBER : ('0' .. '9') + ('.' ('0' .. '9') +)? ;
-
-PLUS  : '+' ;
-MINUS : '-' ;
-MULT  : '×' ;
-DIV   : '÷' ;
-WS : [ \r\n\t] + -> skip ;
+// Lexer Rules
+NUMBER : [0-9]+ ('.' [0-9]+)? ;
+WS     : [ \t\r\n]+ -> skip ;

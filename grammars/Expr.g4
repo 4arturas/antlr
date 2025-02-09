@@ -7,17 +7,17 @@ grammar Expr;
  // Start Variable
  prog:  (decl | expr)+ EOF          # Program
      ;
-decl: INT_TYPE ID '=' NUM           # Declaration
+decl: INT_TYPE VAR '=' NUM           # Declaration
     ;
 
 expr: expr '*' expr                 # Multiplication
     | expr '+' expr                 # Addition
-    | ID                            # Variable
+    | VAR                            # Variable
     | NUM                           # Number
     ;
 
 /* Tokens */
-ID: [a-z][a-zA-Z_]*;
+VAR: [a-z][a-zA-Z_]*;
 NUM: '0' | '-'?[1-9][0-9]*;
 INT_TYPE: 'INT';
 COMMENT: '--' ~[\r\n]* -> skip;
