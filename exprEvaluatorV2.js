@@ -3,143 +3,138 @@ import ExprLexer from "./gen/ExprLexer.js";
 import ExprParser from "./gen/ExprParser.js";
 import ExprVisitor from "./gen/ExprVisitor.js";
 
+// Constants for node types
 const MULTIPLICATION = 'MULTIPLICATION';
 const ADDITION = 'ADDITION';
 const VARIABLE = 'VARIABLE';
 const NUMBER = 'NUMBER';
-const DECLARATION = 'DECLARATION';
-const PROGRAM = 'PROGRAM';
 
-function create_Node( id, value, children = [] )
-{
-    return { id, value, children };
+// Unique ID generator
+let idCounter = 1;
+
+// Function to create a unique ID
+function generateId() {
+    return `node${idCounter++}`;
 }
-const mapValues = {};
-const vars = [];
-const semanticErrors = [];
-class ExprEvaluatorV4 extends ExprVisitor
-{
+
+// Function to create a node
+function createNode(id, x, y, label) {
+    return { id, x, y, label };
+}
+
+// Function to create an edge
+function createEdge(source, target, label) {
+    return { source, target, label };
+}
+
+class ExprGraphBuilder extends ExprVisitor {
+    constructor() {
+        super();
+        this.nodes = [];
+        this.edges = [];
+        this.nodeMap = new Map(); // To store nodes by their IDs
+    }
 
     // Visit a parse tree produced by ExprParser#Program.
     visitProgram(ctx) {
         return this.visitChildren(ctx);
     }
 
-
-    // Visit a parse tree produced by ExprParser#Declaration.
-    visitDeclaration(ctx) {
-        const INT_TYPE = ctx.INT_TYPE().getText();
-        const VAR = ctx.VAR().getText();
-        const NUM = ctx.NUM().getText();
-        if ( vars.includes( VAR ) )
-            semanticErrors.push( "Variable already exists: " + VAR );
-        else
-            vars.push( VAR );
-        mapValues[VAR] = NUM;
-        return create_Node( DECLARATION, null, [INT_TYPE, VAR, NUM] );
-    }
-
-
     // Visit a parse tree produced by ExprParser#Multiplication.
     visitMultiplication(ctx) {
-        const left = this.visit( ctx.getChild( 0 ) );
-        const sign = ctx.getChild( 1 ).getText();
-        const right = this.visit( ctx.getChild( 2 ) );
-        return create_Node( MULTIPLICATION, sign, [left, right] );
-    }
+        const left = this.visit(ctx.getChild(0));
+        const right = this.visit(ctx.getChild(2));
 
+        // Create a new node for the multiplication operation
+        const opId = generateId();
+        const opNode = createNode(opId, 200, 100, '*');
+        this.nodes.push(opNode);
+
+        // Add edges connecting the operands to the operator
+        this.edges.push(createEdge(left.id, opId, 'left'));
+        this.edges.push(createEdge(right.id, opId, 'right'));
+
+        // Store the operator node in the map
+        this.nodeMap.set(opId, opNode);
+
+        return { id: opId, type: MULTIPLICATION };
+    }
 
     // Visit a parse tree produced by ExprParser#Addition.
     visitAddition(ctx) {
-        const left = this.visit( ctx.getChild( 0 ) );
-        const sign = ctx.getChild( 1 ).getText();
-        const right = this.visit( ctx.getChild( 2 ) );
-        return create_Node( ADDITION, sign, [left, right] );
-    }
+        const left = this.visit(ctx.getChild(0));
+        const right = this.visit(ctx.getChild(2));
 
+        // Create a new node for the addition operation
+        const opId = generateId();
+        const opNode = createNode(opId, 200, 100, '+');
+        this.nodes.push(opNode);
+
+        // Add edges connecting the operands to the operator
+        this.edges.push(createEdge(left.id, opId, 'left'));
+        this.edges.push(createEdge(right.id, opId, 'right'));
+
+        // Store the operator node in the map
+        this.nodeMap.set(opId, opNode);
+
+        return { id: opId, type: ADDITION };
+    }
 
     // Visit a parse tree produced by ExprParser#Variable.
     visitVariable(ctx) {
         const VAR = ctx.VAR().getText();
-        if ( !vars.includes( VAR ) )
-            semanticErrors.push( "Variable does not exist " + VAR );
-        return create_Node( VARIABLE, VAR );
-    }
 
+        // Create a node for the variable
+        const varId = generateId();
+        const varNode = createNode(varId, 100, 200, VAR);
+        this.nodes.push(varNode);
+
+        // Store the variable node in the map
+        this.nodeMap.set(varId, varNode);
+
+        return { id: varId, type: VARIABLE };
+    }
 
     // Visit a parse tree produced by ExprParser#Number.
     visitNumber(ctx) {
-        return create_Node( NUMBER, ctx.NUM().getText() );
+        const NUM = ctx.NUM().getText();
+
+        // Create a node for the number
+        const numId = generateId();
+        const numNode = createNode(numId, 100, 200, NUM);
+        this.nodes.push(numNode);
+
+        // Store the number node in the map
+        this.nodeMap.set(numId, numNode);
+
+        return { id: numId, type: NUMBER };
     }
-
-
 }
 
+// Input program
 const input = `
 INT i = 5
 INT j = 7
-i
-j
-i + j
-i * j
 i + j * 3
-i * j + 3
 `;
 
-function evaluate( input )
-{
-    const char = new antlr4.InputStream( input );
-    const lexer = new ExprLexer( char );
-    const tokens = new antlr4.CommonTokenStream( lexer );
-    const parser = new ExprParser( tokens );
+// Evaluate the input program
+function evaluate(input) {
+    const chars = new antlr4.InputStream(input);
+    const lexer = new ExprLexer(chars);
+    const tokens = new antlr4.CommonTokenStream(lexer);
+    const parser = new ExprParser(tokens);
     const tree = parser.prog();
-    const evaluator = new ExprEvaluatorV4();
-    const program = evaluator.visit( tree );
-    return program;
+    const graphBuilder = new ExprGraphBuilder();
+    graphBuilder.visit(tree);
+    return {
+        nodes: graphBuilder.nodes,
+        edges: graphBuilder.edges
+    };
 }
 
-const program = evaluate( input );
-program.pop(); // remove last element
-// console.log( program );
+// Execute the evaluation
+const graph = evaluate(input);
 
-function expression_ToString( e )
-{
-    switch ( e.id )
-    {
-        case DECLARATION:
-            return `${e.children[0]} ${e.children[1]}`;
-        case VARIABLE:
-            return e.value;
-        case MULTIPLICATION:
-            return `${expression_ToString( e.children[0] )} * ${expression_ToString( e.children[1] )}`;
-        case ADDITION:
-            return `${expression_ToString( e.children[0] )} + ${expression_ToString( e.children[1] )}`;
-        case NUMBER:
-            return e.value;
-    }
-}
-
-function expression_Eval( e )
-{
-    switch ( e.id )
-    {
-        case DECLARATION:
-            return parseInt( e.children[2] );
-        case VARIABLE:
-            return parseInt( mapValues[e.value] );
-        case MULTIPLICATION:
-            return expression_Eval( e.children[0] ) * expression_Eval( e.children[1] );
-        case ADDITION:
-            return expression_Eval( e.children[0] ) + expression_Eval( e.children[1] );
-        case NUMBER:
-            return parseInt( e.value );
-    }
-}
-
-for ( let i = 0; i < program.length; i++ )
-{
-    const expression = program[i];
-    const exprStr = expression_ToString( expression );
-    const exprEval = expression_Eval( expression );
-    console.log( exprStr + " = " + exprEval );
-}
+// Print the resulting graph structure
+console.log(JSON.stringify(graph, null, 2));
